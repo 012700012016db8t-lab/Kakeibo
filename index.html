@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家計簿</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: #f5f5f7;
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 800px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .balance-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .balance-card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .balance-card-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .balance-card-amount {
+            font-size: 18px;
+            font-weight: 700;
+            word-break: break-all;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            margin-top: 20px;
+        }
+
+        .section-title:first-child {
+            margin-top: 0;
+        }
+
+        .reset-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .reset-button:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+        }
+
+        .log-item {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .log-item.income {
+            border-left-color: #4CAF50;
+        }
+
+        .log-item.expense {
+            border-left-color: #f5576c;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .log-type {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: #f0f0f0;
+        }
+
+        .log-type.income {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .log-type.expense {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .log-amount {
+            font-size: 16px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .log-amount.income {
+            color: #4CAF50;
+        }
+
+        .log-amount.expense {
+            color: #f5576c;
+        }
+
+        .log-details {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .log-memo {
+            font-size: 12px;
+            color: #999;
+            font-style: italic;
+            margin-top: 5px;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .fab:active {
+            transform: scale(0.9);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-button {
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .toggle-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .toggle-button.income.active {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .toggle-button.expense.active {
+            background: linear-gradient(135deg, #f5576c 0%, #f93842 100%);
+        }
+
+        .select-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .select-button {
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .select-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .textarea-field {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.2s;
+        }
+
+        .textarea-field:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 300;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .confirmation-modal.active {
+            display: flex;
+        }
+
+        .confirmation-content {
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            width: 100%;
+            max-width: 300px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .confirmation-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .confirmation-message {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .confirmation-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .password-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 400;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .password-modal.active {
+            display: flex;
+        }
+
+        .password-content {
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            width: 100%;
+            max-width: 300px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .password-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            font-family: inherit;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .password-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                border-radius: 20px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .balance-card {
+                padding: 12px;
+            }
+
+            .balance-card-amount {
+                font-size: 16px;
+            }
+
+            .fab {
+                width: 56px;
+                height: 56px;
+                bottom: 20px;
+                right: 20px;
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- パスワード認証モーダル -->
+    <div class="password-modal active" id="passwordModal">
+        <div class="password-content">
+            <div class="password-title">家計簿</div>
+            <input type="password" class="password-input" id="passwordInput" placeholder="パスワードを入力">
+            <div class="password-buttons">
+                <button class="btn btn-secondary" onclick="clearPasswordInput()">クリア</button>
+                <button class="btn btn-primary" onclick="verifyPassword()">確認</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインコンテナ -->
+    <div class="container hidden" id="mainContainer">
+        <div class="header">
+            <h1>家計簿</h1>
+            <div class="balance-section">
+                <div class="balance-card">
+                    <div class="balance-card-label">現金</div>
+                    <div class="balance-card-amount" id="cashBalance">¥0</div>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-card-label">PayPay</div>
+                    <div class="balance-card-amount" id="paypayBalance">¥0</div>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-card-label">Rakuten Pay</div>
+                    <div class="balance-card-amount" id="rakutenBalance">¥0</div>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-card-label">銀行</div>
+                    <div class="balance-card-amount" id="bankBalance">¥0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="section-title">ログをリセット</div>
+            <button class="reset-button" onclick="openResetConfirmation()">ログをリセット</button>
+
+            <div class="section-title">取引履歴</div>
+            <div id="logContainer"></div>
+        </div>
+    </div>
+
+    <!-- 入出金登録モーダル -->
+    <div class="modal" id="transactionModal">
+        <div class="modal-content">
+            <div class="modal-title">入出金を登録</div>
+
+            <div class="form-group">
+                <div class="form-label">入金 / 出金</div>
+                <div class="button-group">
+                    <button class="toggle-button income" onclick="selectType('income')" id="incomeBtn">入金</button>
+                    <button class="toggle-button expense" onclick="selectType('expense')" id="expenseBtn">出金</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="form-label">保管場所</div>
+                <div class="select-group">
+                    <button class="select-button" onclick="selectSource('cash')" id="cashBtn">現金</button>
+                    <button class="select-button" onclick="selectSource('paypay')" id="paypayBtn">PayPay</button>
+                    <button class="select-button" onclick="selectSource('rakuten')" id="rakutenBtn">Rakuten Pay</button>
+                    <button class="select-button" onclick="selectSource('bank')" id="bankBtn">銀行</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="form-label">金額</div>
+                <input type="number" class="input-field" id="amountInput" placeholder="0" min="0">
+            </div>
+
+            <div class="form-group">
+                <div class="form-label">備考（任意）</div>
+                <textarea class="textarea-field" id="memoInput" placeholder="メモを入力..."></textarea>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-secondary" onclick="closeTransactionModal()">キャンセル</button>
+                <button class="btn btn-primary" onclick="submitTransaction()">登録</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認モーダル -->
+    <div class="confirmation-modal" id="confirmationModal">
+        <div class="confirmation-content">
+            <div class="confirmation-title" id="confirmationTitle">確認</div>
+            <div class="confirmation-message" id="confirmationMessage">この操作を実行しますか？</div>
+            <div class="confirmation-buttons">
+                <button class="btn btn-secondary" onclick="cancelConfirmation()">キャンセル</button>
+                <button class="btn btn-primary" onclick="executeConfirmation()">実行</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- フローティングアクションボタン -->
+    <button class="fab" id="fab" onclick="openTransactionModal()">+</button>
+
+    <script>
+        const CORRECT_PASSWORD = 'yukki0819';
+        let transactionType = null;
+        let selectedSource = null;
+        let confirmationCallback = null;
+
+        // データの初期化
+        const balances = {
+            cash: 0,
+            paypay: 0,
+            rakuten: 0,
+            bank: 0
+        };
+
+        const logs = [];
+
+        // ローカルストレージからデータを読み込む
+        function loadData() {
+            const savedBalances = localStorage.getItem('balances');
+            const savedLogs = localStorage.getItem('logs');
+
+            if (savedBalances) {
+                Object.assign(balances, JSON.parse(savedBalances));
+            }
+
+            if (savedLogs) {
+                logs.splice(0, logs.length, ...JSON.parse(savedLogs));
+            }
+
+            updateBalanceDisplay();
+            updateLogDisplay();
+        }
+
+        // データを保存
+        function saveData() {
+            localStorage.setItem('balances', JSON.stringify(balances));
+            localStorage.setItem('logs', JSON.stringify(logs));
+        }
+
+        // パスワード検証
+        function verifyPassword() {
+            const password = document.getElementById('passwordInput').value;
+            if (password === CORRECT_PASSWORD) {
+                document.getElementById('passwordModal').classList.remove('active');
+                document.getElementById('mainContainer').classList.remove('hidden');
+                loadData();
+            } else {
+                alert('パスワードが正しくありません');
+                document.getElementById('passwordInput').value = '';
+            }
+        }
+
+        // パスワード入力をクリア
+        function clearPasswordInput() {
+            document.getElementById('passwordInput').value = '';
+        }
+
+        // Enterキーでパスワード検証
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    verifyPassword();
+                }
+            });
+        });
+
+        // 入出金モーダルを開く
+        function openTransactionModal() {
+            resetTransactionForm();
+            document.getElementById('transactionModal').classList.add('active');
+        }
+
+        // 入出金モーダルを閉じる
+        function closeTransactionModal() {
+            document.getElementById('transactionModal').classList.remove('active');
+        }
+
+        // 入出金フォームをリセット
+        function resetTransactionForm() {
+            transactionType = null;
+            selectedSource = null;
+            document.getElementById('amountInput').value = '';
+            document.getElementById('memoInput').value = '';
+
+            // ボタンのアクティブ状態をリセット
+            document.querySelectorAll('.toggle-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.select-button').forEach(btn => btn.classList.remove('active'));
+        }
+
+        // 入出金タイプを選択
+        function selectType(type) {
+            transactionType = type;
+            document.getElementById('incomeBtn').classList.toggle('active', type === 'income');
+            document.getElementById('expenseBtn').classList.toggle('active', type === 'expense');
+        }
+
+        // 保管場所を選択
+        function selectSource(source) {
+            selectedSource = source;
+            document.getElementById('cashBtn').classList.toggle('active', source === 'cash');
+            document.getElementById('paypayBtn').classList.toggle('active', source === 'paypay');
+            document.getElementById('rakutenBtn').classList.toggle('active', source === 'rakuten');
+            document.getElementById('bankBtn').classList.toggle('active', source === 'bank');
+        }
+
+        // 取引を送信
+        function submitTransaction() {
+            const amount = parseInt(document.getElementById('amountInput').value);
+            const memo = document.getElementById('memoInput').value;
+
+            if (!transactionType) {
+                alert('入金 / 出金を選択してください');
+                return;
+            }
+
+            if (!selectedSource) {
+                alert('保管場所を選択してください');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                alert('有効な金額を入力してください');
+                return;
+            }
+
+            // 確認ダイアログを表示
+            confirmationCallback = () => {
+                const sourceMap = {
+                    cash: 'cash',
+                    paypay: 'paypay',
+                    rakuten: 'rakuten',
+                    bank: 'bank'
+                };
+
+                const sourceKey = sourceMap[selectedSource];
+                const sourceLabel = {
+                    cash: '現金',
+                    paypay: 'PayPay',
+                    rakuten: 'Rakuten Pay',
+                    bank: '銀行'
+                }[selectedSource];
+
+                if (transactionType === 'income') {
+                    balances[sourceKey] += amount;
+                } else {
+                    balances[sourceKey] -= amount;
+                }
+
+                const log = {
+                    date: new Date(),
+                    type: transactionType,
+                    source: sourceLabel,
+                    amount: amount,
+                    memo: memo
+                };
+
+                logs.unshift(log);
+                saveData();
+                updateBalanceDisplay();
+                updateLogDisplay();
+                closeTransactionModal();
+            };
+
+            const typeLabel = transactionType === 'income' ? '入金' : '出金';
+            const sourceLabel = {
+                cash: '現金',
+                paypay: 'PayPay',
+                rakuten: 'Rakuten Pay',
+                bank: '銀行'
+            }[selectedSource];
+
+            document.getElementById('confirmationTitle').textContent = '確認';
+            document.getElementById('confirmationMessage').textContent = 
+                `${typeLabel}：${sourceLabel} ¥${amount.toLocaleString()}${memo ? '\n備考：' + memo : ''}`;
+            document.getElementById('confirmationModal').classList.add('active');
+        }
+
+        // 確認をキャンセル
+        function cancelConfirmation() {
+            document.getElementById('confirmationModal').classList.remove('active');
+            confirmationCallback = null;
+        }
+
+        // 確認を実行
+        function executeConfirmation() {
+            if (confirmationCallback) {
+                confirmationCallback();
+            }
+            document.getElementById('confirmationModal').classList.remove('active');
+            confirmationCallback = null;
+        }
+
+        // ログをリセット確認
+        function openResetConfirmation() {
+            confirmationCallback = () => {
+                logs.length = 0;
+                saveData();
+                updateLogDisplay();
+            };
+
+            document.getElementById('confirmationTitle').textContent = '確認';
+            document.getElementById('confirmationMessage').textContent = 'ログをリセットしますか？\n（貯蓄額は変わりません）';
+            document.getElementById('confirmationModal').classList.add('active');
+        }
+
+        // 残高表示を更新
+        function updateBalanceDisplay() {
+            document.getElementById('cashBalance').textContent = '¥' + balances.cash.toLocaleString();
+            document.getElementById('paypayBalance').textContent = '¥' + balances.paypay.toLocaleString();
+            document.getElementById('rakutenBalance').textContent = '¥' + balances.rakuten.toLocaleString();
+            document.getElementById('bankBalance').textContent = '¥' + balances.bank.toLocaleString();
+        }
+
+        // ログ表示を更新
+        function updateLogDisplay() {
+            const logContainer = document.getElementById('logContainer');
+            logContainer.innerHTML = '';
+
+            if (logs.length === 0) {
+                logContainer.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">取引履歴がありません</p>';
+                return;
+            }
+
+            logs.forEach(log => {
+                const logElement = document.createElement('div');
+                logElement.className = `log-item ${log.type}`;
+
+                const date = new Date(log.date);
+                const dateString = date.toLocaleString('ja-JP', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                const typeLabel = log.type === 'income' ? '入金' : '出金';
+                const amountSign = log.type === 'income' ? '+' : '-';
+
+                logElement.innerHTML = `
+                    <div class="log-header">
+                        <span class="log-type ${log.type}">${typeLabel}</span>
+                        <span class="log-amount ${log.type}">${amountSign}¥${log.amount.toLocaleString()}</span>
+                    </div>
+                    <div class="log-details">${log.source}</div>
+                    <div class="log-details">${dateString}</div>
+                    ${log.memo ? `<div class="log-memo">「${log.memo}」</div>` : ''}
+                `;
+
+                logContainer.appendChild(logElement);
+            });
+        }
+
+        // ページロード時にパスワード入力にフォーカス
+        window.addEventListener('load', function() {
+            document.getElementById('passwordInput').focus();
+        });
+    </script>
+</body>
+</html>
